@@ -1,0 +1,8 @@
+#!/bin/sh
+
+export HOME=/
+export PATH=/usr/bin:/etc:/usr/sbin:/usr/ucb:/usr/bin/X11:/sbin:/usr/local/bin:/usr/lpp/Java/bin
+cd /home/htdocs/shogi/gsdb/java/server/
+
+java Server >> /tmp/Server.log &
+

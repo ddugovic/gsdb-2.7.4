@@ -1,0 +1,3 @@
+Make sure that empty Pages are deleted, both from disk and from the pagelist.
+What is up with the delete?  Why doesn't it remove the pagelist and the
+	recordlist?

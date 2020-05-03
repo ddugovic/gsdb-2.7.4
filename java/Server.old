@@ -1,0 +1,575 @@
+// This program is based on an example in a book called :
+// "Java in a Nutshell" by David Flanagan.
+// Written by David Flanagan.  Copyright (c) 1996 O'Reilly & Associates.
+
+import jDB.*;
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+public class Server extends Thread 
+{
+    public final static int DEFAULT_PORT = 54321;
+    protected int port;
+    protected ServerSocket listen_socket;
+    Database gamedb = null;
+    public Index Ikey, Itournament,Igametype,Iblack_name,Iwhite_name,Iproam, Iresult, Idate;
+    String hostname;
+    
+    // Exit with an error message, when an exception occurs.
+    public static void fail(Exception e, String msg) 
+    {
+        System.err.println(msg + ": " +  e);
+        System.exit(1);
+    }
+    
+    // Create a ServerSocket to listen for connections on;  start the thread.
+    public Server(int port) 
+    {
+        if (port == 0) port = DEFAULT_PORT;
+        this.port = port;
+        try { listen_socket = new ServerSocket(port); }
+        catch (IOException e) { fail(e, "Exception creating server socket"); }
+
+	//
+	// Now do some db stuff
+	//
+	try 
+	{ 
+		gamedb = new Database( "games"); 
+	}
+	catch (IOException e) { fail(e, "Error opening games database !"); }
+
+	System.out.println("games db is open.("+gamedb.size()+" records)");
+
+	
+	Ikey=new LinearIndex("key", new Equality());
+
+	Itournament=new LinearIndex("tournament", new WildCard());
+	Igametype=new LinearIndex("gametype", new WildCard());
+	Iblack_name=new LinearIndex("black_name", new WildCard());
+	Iwhite_name=new LinearIndex("white_name", new WildCard());
+	Iproam=new LinearIndex("proam", new WildCard());
+	Iresult=new LinearIndex("result", new WildCard());
+	Idate=new LinearIndex("date", new WildCard());
+
+	System.out.print("Creating/Checking key        index ..."); System.out.flush(); gamedb.addIndex( Ikey        ); System.out.println("done.");
+	System.out.print("Creating/Checking tournament index ..."); System.out.flush(); gamedb.addIndex( Itournament ); System.out.println("done.");
+	System.out.print("Creating/Checking gametype   index ..."); System.out.flush(); gamedb.addIndex( Igametype   ); System.out.println("done.");
+	System.out.print("Creating/Checking black_name index ..."); System.out.flush(); gamedb.addIndex( Iblack_name ); System.out.println("done.");
+	System.out.print("Creating/Checking white_name index ..."); System.out.flush(); gamedb.addIndex( Iwhite_name ); System.out.println("done.");
+	System.out.print("Creating/Checking proam      index ..."); System.out.flush(); gamedb.addIndex( Iproam      ); System.out.println("done.");
+	System.out.print("Creating/Checking result     index ..."); System.out.flush(); gamedb.addIndex( Iresult     ); System.out.println("done.");
+	System.out.print("Creating/Checking date       index ..."); System.out.flush(); gamedb.addIndex( Idate       ); System.out.println("done.");
+	gamedb.setComparator( new WildCard() );
+
+	try { gamedb.store(); } catch (IOException e) { fail(e, "Error storing games database !"); }
+	System.out.println("Accepting connections ...");
+
+	// Roll with it !
+	
+        this.start();
+    }
+    
+    // The body of the server thread.  Loop forever, listening for and
+    // accepting connections from clients.  For each connection, 
+    // create a Connection object to handle communication through the
+    // new Socket.
+    public void run() 
+    {
+        try 
+	{
+            while(true) {
+                Socket client_socket = listen_socket.accept();
+                Connection c = new Connection(client_socket, this);
+		hostname=client_socket.getInetAddress().getHostName();
+		System.out.print("\n"); printDate(); System.out.println(" New connection");
+            }
+        }
+        catch (IOException e) { fail(e, "Exception while listening for connections"); }
+    }
+
+    public void printDate()
+    {
+    	Date date=new Date(System.currentTimeMillis());
+    	int ho=date.getTimezoneOffset()/60;
+	System.out.print("["+date.getDate()+"/"+(date.getMonth()+1)+"/19"+date.getYear()+"--"+(date.getHours()-ho)+":"+(date.getMinutes()<10?"0":"")+date.getMinutes()+":"+(date.getSeconds()<10?"0":"")+date.getSeconds()+"--"+hostname+"]");
+    }
+    
+    // Start the server up, listening on an optionally specified port
+    public static void main(String[] args) 
+    {
+	int port = 0;
+	if (args.length == 1) {
+	    try { port = Integer.parseInt(args[0]); }
+	    catch (NumberFormatException e) { port = 0; }
+	}
+	new Server(port);
+    }
+}
+
+
+// This class is the thread that handles all communication with a client
+class Connection extends Thread {
+    protected Socket client;
+    protected DataInputStream in;
+    protected PrintStream out;
+    public int position;
+    Server server;
+
+    public static final char    FSEP    =       (char)1;
+    public static final char    KSEP    =       (char)3;
+
+    public Connection(Socket client_socket, Server srv) 
+    {
+        client = client_socket;
+	server = srv;
+        try 
+	{ 
+            in = new DataInputStream(client.getInputStream());
+            out = new PrintStream(client.getOutputStream());
+        }
+        catch (IOException e) 
+	{
+            try { client.close(); } catch (IOException e2) { ; }
+            System.err.println("Exception while getting socket streams: " + e);
+            return;
+        }
+        this.start();
+    }
+    
+    public void run() 
+    {
+        String line;
+        String line2;
+	StringBuffer lastkey = new StringBuffer("");
+
+	StringBuffer key         = new StringBuffer(""); StringBuffer name        = new StringBuffer("");
+	StringBuffer email       = new StringBuffer(""); StringBuffer country     = new StringBuffer("");
+	StringBuffer black_name  = new StringBuffer(""); StringBuffer white_name  = new StringBuffer("");
+	StringBuffer black_grade = new StringBuffer(""); StringBuffer white_grade = new StringBuffer("");
+	StringBuffer black_elo   = new StringBuffer(""); StringBuffer white_elo   = new StringBuffer("");
+	StringBuffer result      = new StringBuffer(""); StringBuffer comment     = new StringBuffer("");
+	StringBuffer source      = new StringBuffer(""); StringBuffer tournament  = new StringBuffer("");
+	StringBuffer date        = new StringBuffer(""); StringBuffer round       = new StringBuffer("");
+	StringBuffer venue       = new StringBuffer(""); StringBuffer proam       = new StringBuffer("");
+	StringBuffer gametype    = new StringBuffer(""); StringBuffer game        = new StringBuffer("");
+
+	lastkey.setLength(0);
+
+	int eqpos;
+	boolean multi=false;
+	Vector query, query2;
+	boolean found;
+	int i,j,elements;
+
+        try 
+	{
+            for(;;) 
+	    {
+                line = in.readLine();
+                if (line == null) break;
+		server.printDate();
+		System.out.print(" ["+line+"] "); System.out.flush();
+
+		if (line.compareTo("GET GAME") == 0 || line.compareTo("GET GAMES") == 0)
+		{ // client asks for a game or a query
+
+			multi=(line.compareTo("GET GAMES") == 0);
+
+			line = in.readLine().replace('=',KSEP).replace(',',FSEP);
+
+			System.out.print("Lookup ["+line+"] " ); System.out.flush();
+
+			if (multi)
+			{
+				line2 = in.readLine().replace('=',KSEP).replace(',',FSEP);
+				System.out.print("OR ["+line2+"] " ); System.out.flush();
+				Record look  = new Record(line);
+				Record look2 = new Record(line2);
+				query  = server.gamedb.get( look  );
+				query2 = server.gamedb.get( look2 );
+				elements=query.size();
+				for (i=0;i<query2.size();i++)
+				{
+					// check if element(i) allready exists in query, we don't want doubles
+					//
+					found=false;
+					for (j=0;j<elements;j++)
+					{
+						if ( ((Record)query.elementAt(j)).equals( (Record)query2.elementAt(i) ) )
+						{
+							found=true;
+							break;
+						}
+					}
+					if (!found) query.addElement(query2.elementAt(i));
+				}
+			}
+			else
+			{
+				Record look  = new Record( line );
+				query  = server.gamedb.get( look );
+			}
+
+			if (query.isEmpty())
+			{
+				System.out.print("Game not found"); System.out.flush();
+				out.println("GAME NOT FOUND");
+			}
+			else
+			{
+			  if (query.size()==1)
+			  {
+				  out.println("GAME READ");
+				  System.out.print(" Found 1 game. sending game."); System.out.flush();
+				  Record f=(Record)query.firstElement();
+			  
+				  writeString(out, (String)f.get("key")        ); writeString(out, (String)f.get("name")       );
+				  writeString(out, (String)f.get("email")      ); writeString(out, (String)f.get("country")    );
+				  writeString(out, (String)f.get("black_name") ); writeString(out, (String)f.get("white_name") );
+				  writeString(out, (String)f.get("black_grade")); writeString(out, (String)f.get("white_grade"));
+				  writeString(out, (String)f.get("black_elo")  ); writeString(out, (String)f.get("white_elo")  );
+				  writeString(out, (String)f.get("result")     ); writeString(out, (String)f.get("comment")    );
+				  writeString(out, (String)f.get("source")     ); writeString(out, (String)f.get("tournament") );
+				  writeString(out, (String)f.get("date")       ); writeString(out, (String)f.get("round")      );
+				  writeString(out, (String)f.get("venue")      ); writeString(out, (String)f.get("proam")      );
+				  writeString(out, (String)f.get("gametype")   ); writeGame  (out, (String)f.get("game")       );
+
+				  System.out.print("Done.");
+			  }
+			  else // Oh dear, we found more than one possible game ! --> send indexes
+			  {
+			  	out.println("GAME LIST");
+				out.println(""+query.size());
+				//
+				// Maybe we should do a primitive sort of some kind ?
+				// well, sort on date, tournament and round, for example
+				//
+				System.out.print("Sorting... "); System.out.flush();
+				for (i=0;i<query.size();i++)   //{{ BUBBLE SORT
+				{
+				 for (j=0;j<query.size()-i-1;j++)
+				 {
+				   Record One=(Record)query.elementAt(j  );
+				   Record Two=(Record)query.elementAt(j+1);
+
+				   String d1=((String)(One.get("date"))).trim();
+				   String d2=((String)(Two.get("date"))).trim();
+				   String t1=((String)(One.get("tournament"))).trim();
+				   String t2=((String)(Two.get("tournament"))).trim();
+				   String r1=((String)(One.get("round"))).trim();
+				   String r2=((String)(Two.get("round"))).trim();
+
+				   if (
+				         ( t1.compareTo(t2) >0                                               ) || 
+					 ( t1.compareTo(t2)==0 && r1.compareTo(r2) >0                        ) || 
+					 ( t1.compareTo(t2)==0 && r2.compareTo(r2)==0 && d1.compareTo(d2) >0 )
+				      )
+				   {
+					// We need to swap 2 vectors.
+					Record dummy=(Record)query.elementAt(j);
+					query.setElementAt( query.elementAt(j+1), j   );
+					query.setElementAt( dummy,                j+1 );
+				   }
+				  }
+				} //}} END BUBBLE SORT
+
+				System.out.print("Sending [GAME LIST], "+query.size()+" elements."); System.out.flush();
+
+				for (Enumeration e=query.elements();e.hasMoreElements();)
+				{
+					Record rec=(Record)e.nextElement();
+					// Now send : key date black_name white_name result tournament round
+					out.print((String)rec.get("key")+FSEP);
+					out.print((String)rec.get("date")+FSEP);
+					out.print((String)rec.get("black_name")+FSEP);
+					out.print((String)rec.get("white_name")+FSEP);
+					out.print((String)rec.get("result")+FSEP);
+					out.print((String)rec.get("tournament")+FSEP);
+					out.print((String)rec.get("round")+FSEP);
+					out.println("");
+				}
+			  }
+			}
+		}
+		else
+		if (line.compareTo("SEND GAME") == 0)
+		{
+			// HERE WE GET THE GAME FROM THE CLIENT !
+			line = in.readLine();
+			position=0;
+
+			readString(line, key        ); readString(line, name       );
+			readString(line, email      ); readString(line, country    );
+			readString(line, black_name ); readString(line, white_name );
+			readString(line, black_grade); readString(line, white_grade);
+			readString(line, black_elo  ); readString(line, white_elo  );
+			readString(line, result     ); readString(line, comment    );
+			readString(line, source     ); readString(line, tournament );
+			readString(line, date       ); readString(line, round      );
+			readString(line, venue      ); readString(line, proam      );
+			readString(line, gametype   ); readGame  (line, game       );
+
+			// Let's just add the record to the database , OK ?
+			try 
+			{
+				Record new_game=new Record(
+				"key"        +Const.KSEP+key        .toString()+Const.FSEP+
+				"name"       +Const.KSEP+name       .toString()+Const.FSEP+
+				"email"      +Const.KSEP+email      .toString()+Const.FSEP+
+				"country"    +Const.KSEP+country    .toString()+Const.FSEP+
+				"black_name" +Const.KSEP+black_name .toString()+Const.FSEP+
+				"white_name" +Const.KSEP+white_name .toString()+Const.FSEP+
+				"black_grade"+Const.KSEP+black_grade.toString()+Const.FSEP+
+				"white_grade"+Const.KSEP+white_grade.toString()+Const.FSEP+
+				"black_elo"  +Const.KSEP+black_elo  .toString()+Const.FSEP+
+				"white_elo"  +Const.KSEP+white_elo  .toString()+Const.FSEP+
+				"result"     +Const.KSEP+result     .toString()+Const.FSEP+
+				"comment"    +Const.KSEP+comment    .toString()+Const.FSEP+
+				"source"     +Const.KSEP+source     .toString()+Const.FSEP+
+				"tournament" +Const.KSEP+tournament .toString()+Const.FSEP+
+				"date"       +Const.KSEP+date       .toString()+Const.FSEP+
+				"round"      +Const.KSEP+round      .toString()+Const.FSEP+
+				"venue"      +Const.KSEP+venue      .toString()+Const.FSEP+
+				"proam"      +Const.KSEP+proam      .toString()+Const.FSEP+
+				"gametype"   +Const.KSEP+gametype   .toString()+Const.FSEP+
+				"game"       +Const.KSEP+game       .toString());
+
+				// To do this correctly, we'd want to check for matches and do a replace.
+
+				Record look  = new Record("key="+key.toString(),"=");
+				Record check = server.gamedb.first( look );
+				if (check == null)
+				{
+					server.gamedb.add( new_game );
+					try { server.gamedb.store(); } catch (IOException ex) { server.fail(ex, "Error storing games database !"); }
+					out.println("GAME SAVED");
+					System.out.print("Saved with key "+key.toString()); System.out.flush();
+				}
+				else
+				{
+					if (lastkey.toString().compareTo(key.toString()) != 0)
+					{
+						System.out.print("Game exists with key : "+key.toString()); System.out.flush();
+						out.println("GAME EXISTS");
+						lastkey.append(key.toString());
+						
+					}
+					else // User tries again to save game --> do it !
+					{
+						// There is a problem with the replace routine !!!!
+						// as a test, we delete and add
+						//
+						// OLD :
+						// if (!server.gamedb.replace( check, new_game ))
+						//
+						// NEW :
+
+						if (server.gamedb.remove( check ) )
+						{
+							server.gamedb.add( new_game);
+							server.gamedb.store();
+							out.println("GAME SAVED");
+							lastkey.setLength(0);
+							System.out.print(" Replaced game with key "+key.toString()); System.out.flush();
+						}
+						else
+						{
+							System.out.print(" Old game not deleted, record not replaced !"); System.out.flush();
+						}
+					}
+				}
+			} 
+			catch (Exception e) 
+			{
+				e.printStackTrace();
+				return;
+			}
+		}
+		else
+		if (line.compareTo("BITMAP") == 0)
+		{
+			StringBuffer lineb=new StringBuffer("");
+			
+			System.out.flush();
+			line = in.readLine();
+			int width=Integer.parseInt( line.trim() );
+			line = in.readLine();
+			int heigth=Integer.parseInt( line.trim() );
+
+			int offset=62;
+			int headerlen=40;
+			int cwidth=((width+15)/16)*16;
+			int size=(cwidth/8)*heigth + offset;
+
+			System.out.print("Receiving ("+width+"x"+heigth+") bitmap from client.(size="+size+")"); System.out.flush();
+			
+			// What's the filename ?
+			int number=1;
+			String filename=new String("gsdb"+number+".bmp");
+			while (new File(filename).exists())
+			{
+				number++;
+				filename=new String("gsdb"+number+".bmp");
+			}
+			
+			RandomAccessFile file=new RandomAccessFile(filename,"rw");
+
+			// First the header of the Windows .BMP file :
+			// BITMAPFILEHEADER
+			file.writeByte((int)'B');
+			file.writeByte((int)'M');
+			file.writeByte( getByte(size,1) );    // file-size
+			file.writeByte( getByte(size,2) );    // file-size
+			file.writeByte( getByte(size,3) );    // file-size
+			file.writeByte( getByte(size,4) );    // file-size
+			file.writeByte(0);       // reserved
+			file.writeByte(0);       // reserved
+			file.writeByte(0);       // reserved
+			file.writeByte(0);       // reserved
+			file.writeByte( getByte(offset,1) );    // Offset to bitmap file
+			file.writeByte( getByte(offset,2) );    // Offset to bitmap file
+			file.writeByte( getByte(offset,3) );    // Offset to bitmap file
+			file.writeByte( getByte(offset,4) );    // Offset to bitmap file
+			// ---> 14 bytes
+
+			// BITMAPINFO
+				// BITMAPINFOHEADER
+				file.writeByte (getByte(headerlen,1));     // Length of BITMAPINFOHEADER
+				file.writeByte (getByte(headerlen,2));     // Length of BITMAPINFOHEADER
+				file.writeByte (getByte(headerlen,3));     // Length of BITMAPINFOHEADER
+				file.writeByte (getByte(headerlen,4));     // Length of BITMAPINFOHEADER
+				file.writeByte (getByte(width,1));  // Width in pixels
+				file.writeByte (getByte(width,2));  // Width in pixels
+				file.writeByte (getByte(width,3));  // Width in pixels
+				file.writeByte (getByte(width,4));  // Width in pixels
+				file.writeByte (getByte(heigth,1)); // Heigth in pixels
+				file.writeByte (getByte(heigth,2)); // Heigth in pixels
+				file.writeByte (getByte(heigth,3)); // Heigth in pixels
+				file.writeByte (getByte(heigth,4)); // Heigth in pixels
+				file.writeByte (1);              // planes, allways 1
+				file.writeByte (0);              // planes, allways 1
+				file.writeByte (1);              // bits per pixel 1==monochrome
+				file.writeByte (0);              // bits per pixel 1==monochrome
+				file.writeInt  (0);              // Compression : 0=not compressed
+				file.writeByte (getByte(cwidth*heigth/8,1)); // size in bytes of image
+				file.writeByte (getByte(cwidth*heigth/8,2)); // size in bytes of image
+				file.writeByte (getByte(cwidth*heigth/8,3)); // size in bytes of image
+				file.writeByte (getByte(cwidth*heigth/8,4)); // size in bytes of image
+				file.writeInt  (0);            // X pixels per meter ???
+				file.writeInt  (0);            // Y pixels per meter ???
+				file.writeInt  (0);              // # Colors used , 0=all used
+				file.writeInt  (0);              // # Important colors , 0=all important
+				//--> 40 bytes
+				
+				// RGBQUAD  2 quads in monochrome bitmaps
+				file.writeInt (         0);      // Black
+				file.writeByte(      0xff);      // White
+				file.writeByte(      0xff);      // White
+				file.writeByte(      0xff);      // White
+				file.writeByte(         0);      // White
+				//--> 8 bytes
+
+			// The actual bitmap follows
+			byte byteline[];
+
+			byteline=new byte[cwidth>>3];  // allways a multiple of 16, so >>3 is possible
+
+			int low;
+			int high;
+
+			for (int y=0;y<heigth;y++)
+			{
+				line = in.readLine();
+				for (int x=0;x<line.length();x+=2)
+				{
+					high=line.charAt(x  )-32;
+					low =line.charAt(x+1)-32;
+					byteline[x>>1]=(byte)((high<<4)+low);
+				}
+				file.write( byteline ); 
+			}
+
+			file.close();
+			System.out.print(" done."); System.out.flush();
+			out.println("BITMAP SAVED");
+			out.println(filename);
+		}
+		else
+		if (line.compareTo("QUIT") == 0)
+		{
+			out.println("Quiting the GNU Shogi Database Server.");
+			client.close();
+			break;
+		}
+		System.out.println("");
+	    }
+	}
+	catch (IOException e) { ; }
+	finally { try  { client.close(); }  catch (IOException e2) { ; } }
+	System.out.println("Connection closed.");
+    }
+
+    public int getByte(int number, int bytenr)
+    {
+    	// Java and BMP are note compatible
+	// BMP needs the MSB first, Java last
+
+	int retval;
+
+	switch(bytenr)
+	{
+	case 1   : retval= (number & 0xff) ;                break;
+	case 2   : retval= (number & 0xff00) >> 8;          break;
+	case 3   : retval= (number & 0xff0000) >>16;        break;
+	case 4   : retval= (number & 0xff000000) >>24;      break;
+	default  : retval=0; break;
+	}
+
+	return( retval );
+    }
+
+    public void readString(String in, StringBuffer s)
+    {
+	s.setLength(0);
+
+	while ( in.indexOf(FSEP, position) != position)
+	{
+		if ((int)in.charAt(position) < 8)
+		{
+			s.append(' ');
+		}
+		else
+		{
+			s.append((char)in.charAt(position));
+		}
+		position++;
+	}
+	position++;
+    }
+
+    public void readGame(String in, StringBuffer g)
+    {
+    	g.setLength(0);
+
+    	int max=in.length();
+
+	while(position<max)
+	{
+		g.append((char)in.charAt(position));
+		position++;
+	}
+    }
+    public void writeString(PrintStream out, String s)
+    {
+	out.print(s+FSEP);
+    }
+
+    public void writeGame  (PrintStream out, String g)
+    {
+    	out.println(g);
+    }
+}
+
+

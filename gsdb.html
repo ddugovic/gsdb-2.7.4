@@ -1,0 +1,360 @@
+<HTML>
+<head>
+<TITLE>GSDB FAQ</TITLE>
+</head>
+<body background="pictures/grayking.gif" TEXT="#000000" LINK="#000000" VLINK="#000000" >
+<p>
+<CENTER><IMG SRC="pictures/help.gif" border=3></CENTER>
+<p>
+<H2><center>The Gnu Shogi Database project<p>
+FAQ</center></H2><p>
+<p>
+<hr>
+<pre>
+
+Q. What is GSDB ?
+
+    GSDB is short for the Gnu Shogi Database project. 
+    The idea here is to store shogi-games in a database that can be consulted by
+    people on the internet.  It will make things easier for people who want to 
+    learn from professional games.  It will also allow you to see how amateurs
+    (in Europe) play shogi.  As an additional bonus, it's a nice tool to make 
+    shogi diagrams.
+
+
+Q. Where can I find GSDB ?
+
+    GSDB can be found on the internet on http://www.netpoint.be/shogi/gsdb/
+    The source-code is available for both the server and the client part of GSDB.
+    The file is called :
+
+		http://www.netpoint.be/shogi/gsdb/files/gsdb-2.7.1.zip
+
+
+Q. What's the latest version of GSDB ?
+
+    The lastest version as of 12-feb-1998 is 2.7.1
+
+
+Q. What's new in the latest version of GSDB ?
+
+    * We changed the look and added menus for your ease of use
+    * More then 1 client can be started from the same applet.
+    * All screens are now available under F1-F8 AND under menus
+    * A list of preset queries has been added to the menu.
+    * We have a new graphical game-score window supporting variations
+    * The whole datastructure of GSDB has been rewritten
+    * ...
+
+
+Q. What are the known bugs ?
+
+    * The tsume-solver still drops mate with a pawn (Yuk !)
+    * INTERNET EXPLORER doesn't respond as it should to the getClipRect() 
+      method causing the screen to be drawn too high, cutting of a piece
+      of the screen.  I included a view IE option for this, but it's not
+      a good solution.
+    * INTERNET EXPLORER doesn't respond as it should to the loadBoard 
+      method in the Gsdb class.  Switching from color to black&white is 
+      not possible.  The solution is to click right on the database icon
+      to get the black'n white version and left for the colored screen.
+
+
+Q. What software do I need to use GSDB ?
+
+    For the client you need a browser capable of running java-applets.
+    For example: 
+
+	Netscape versions 3 or 4 
+	Microsoft Internet Explorer version 3 or 4
+	AppletViewer from the JDK.
+    
+    GSDB is written in Java version 1.0.2. and should run on any Java enabled
+    browser on any platform.  Please inform the authors if this is not the case.
+
+    For the server you need to have the Java Development Kit (JDK) for the 
+    platform you're running.  You also need the JDK if you want to change
+    something in the client or server code. 
+
+
+Q. How do I read a game from the database ?
+
+    The database contains over 800 games, so you have to make a selection.
+    You can do this by selecting a preset query in the Search menu, or by
+    making your own query in the Window "Search" menu. (F6 key)
+    Once the server has computed your query a list of games will be presented.
+    You can click on a game and press OK to load it from the server.
+    If you can't connect to the server, you can also download a selection of
+    games from the "Open game file" option in the File menu.
+
+
+Q. How do I save a game in the database ?
+
+    Once you entered all the information you have in the data-screen, and 
+    entered the game by playing it through on the board, you can select "Send game"
+    in the File menu. If the game allready exists in the database a message will
+    be shown.  You can then send again to overwrite the game.
+
+
+Q. How do I browse through a game ?
+
+    In the main window :
+
+    Click <<          to go to the beginning of the game 
+    Click >>          to go to the end of the game
+    Click <           to go back one move
+    Click >           to go forward one move.
+    Click Auto        to start the auto-replay of the game.
+    Click stop        to stop the auto-replay of the game.
+    Press LEFT-key    to go back one move
+    Press RIGHT-key   to go forward one move.
+    Press UP-key      to load the previous game in the selection
+    Press DOWN-key    to load the next game in the selection
+    Press SPACE-bar   to prevent a piece from promoting while moving 
+		      ...or move with right-button/Meta+Button
+    Press !-key       to print a PSN notation of the game to the 
+                      console and the Decode screen
+    Press b-key       to put a square in bold typeface
+    Press c-key       to clear all bold settings.
+    Press d-key       to dump a .bmp file to the server directory
+    Press i-key       to show the intro on the screen
+
+
+Q. What do the different menu's do ?
+
+
+  Menu descriptions
+  -----------------
+
+  File
+  ----
+	
+       New game :   
+            Erases the games, resets all settings to default and clears 
+            all data fields
+
+       Open game file : 
+            This option gives you a list of data-files to select from.  These
+            data-files are tab-delimited flat-files.  Selecting one will load 
+            the games in this file into memory and display the contents in the 
+            game selection window (F7).
+
+       Open PSN file : 
+            This option gives you a list of PSN-files to select from.  These
+            PSN-files are in Portable Shogi Notation format.  Selecting one will load 
+            the games in this file into memory and display the contents in the 
+            game selection window (F7).
+
+       Connect :    
+            Connect to the Shogi Database Server.  This server allways resides 
+            on the machine from which you loaded the applet.
+
+       Save game file : 
+            This option lets you save the game you entered in the Shogi Database.
+            A dialog-box will appear to confirm this, and if the game already exists,
+            you will need to confirm the overwrite.
+            A dialog box will confirm that the game has been saved.
+
+	Save bitmap (d) :
+            This sends a black and white bitmap to the Shogi Database server.  The
+            server will then save the bitmap as a MS Windows BMP format. (uncompressed
+            in 2 colors, 408 pixels wide, 355 pixels high.
+            A dialog box will confirm that the bitmap has been saved.
+
+       Calculate Tsume :    
+            When you entered a tsume, this option will try to calculate the solution
+            for you.  
+
+       Quit :    
+            Quits the client after confirmation       
+
+
+  View
+  ----
+	
+       Turn board (F9) :
+            Rotates the board 180 degrees.
+
+       Color/B&W... :
+            Lets you choose between a colored or a black and white representation of
+            the shogi board.
+
+       Game type :
+            Lets you choose between the different possible types of handicaps.
+            You can also choose the types Tsume, Hishi, Position.  Choose Edit
+            Position if you want to change an existing tsume, hishi or position.
+
+       Done editing :
+            If you chose "Edit position" in the game type menu list, you can indicate
+            that you're through done editing with this option.
+
+       Show names of players :
+            This options showes or hides the names of the players under the board.
+            It's allways "black vs white", even when the board is rotated.
+
+       Load previous game in query (UP) :
+            When there are games in the game selection window, this will load the
+            previous game from that list.
+
+       Load next game in query (DOWN) :
+            When there are games in the game selection window, this will load the
+            next game from that list.
+
+       Correct IE bugs :
+            Setting this option is only necesseray for clients running on Microsoft
+            Internet Explorer versions 3 and 4.
+            Internet explorer has a couple of bugs, the most important one being that
+            shogi board is drawn in the wrong place because IE reports back the wrong
+            clipping area to the client.
+
+  Move
+  ----
+      Forward (RIGHT)
+      Back (LEFT)
+      Start of game (HOME)
+      End of game (END)
+      New variation
+      Leave variation
+      Auto replay start
+      Auto replay stop
+      Auto replay delay...
+      delay  0.1s-6s
+
+  Search
+  ------
+        Amature events... : various European amateur tournaments
+		
+        Professional events... : a selection of Professional Tournaments
+        Games played in ... 1992-1998
+        What's new today, this month, this year.
+
+  Window
+  ------
+        Data (F2) :
+             Shows or hides the data window containing information on the shogi game.
+             Following game information is available in the data-window : 
+			- the names of the players with their strength;
+			- when it was played;
+			- in which country it was played;
+			- who put it in the database;
+			- the name of the tournament;
+			- the round;
+			- the result of the game;
+			- wether it is a professional game or not;
+			- a general comment on the game.
+			
+        Game score (F3) :
+              Shows or hides a graphical window with the gamescore in it.
+
+        Comment (F4) :
+              Shows or hides a window containing a comment on a move.  
+              This window pops up automatically when there is a comment on a move.
+
+        Decode/Encode (F5) :
+              Shows or hides a window which allows you to look for games in the
+              shogi database.
+              Two criteria can be given to look for in an "AND" or "OR" combination.
+              Wildcards can be given to search for games : use the * and ?
+              characters.  For example : Select "black player" and type in "*Nakabisha*
+	      Possible decoding schemes : PSN, Kifu, JavaShogi
+	      Possible endecoding schemes : PSN, ESN
+		
+        Search (F6) :
+	      Search for a game in the database, fill in either screen.
+	      Combine the 2 search criteria if needed with OR/AND
+
+        Select from search result (F7) :
+	      Displays the result of the last search command to select from.
+
+        Choose a variation (F8) :
+	      If different variations exist for a move, this window allows you 
+	      to select/delete these variations.
+
+        Close all windows :
+	      Closes all windows exept the client/board itself.
+
+
+Q. How do I use GSDB on my PC without an internet connection ?
+
+    First you need to install the Java Development Kit (or JDK).  
+    The latest version of the JDK is 1.1 and can be found free of 
+    charge on the internet.  Go to http://www.javasoft.com/ for the 
+    Windows 95/NT and Sun Solaris versions.  Look at 
+
+	    http://www.javasoft.com/products/jdk/jdk-ports.html
+
+    for links to the JDK on other platforms.  Then, once you got 
+    hold of the GSDB archive, decompress it in a directory.
+
+    For example you might decompress the archive in the \ directory.
+    This gives you a number of subdirectories.  The first thing you do 
+    is start the database :
+
+            cd \gsdb\java\server
+	    java Server
+
+    Then you start your browser(or the appletviewer) and load the file 
+    \gsdb\contents.html
+
+    That's it : the applet will start and you can use GSDB.
+    On all platforms this is the same.
+
+    Make sure you have the TCP/IP protocol installed on your machine.  
+    You can check if this is covered by typing ping 127.0.0.1
+    Some people using Microsoft Windows '95 have reported problems with this 
+    on their machines.  One possible solution is to explicitly give your machine 
+    an IP address (for example : 10.0.0.1) and a netmask (for example 255.255.255.0)
+    If your machine is connected to a network, please make sure this is ok 
+    for the other machines.  And if that still doesn't work, I noticed that the 
+    appletviewer might work when your browser doesn't. (again, this problem only 
+    seems to occur on Windows 95)
+
+
+Q. What is the connect function for in the main menu? 
+
+    Well, it can be very annoying if your modem hangs up just at the
+    moment you are entering a long game.  Now you can reconnect to
+    the server with the connect button.
+    Also, you can work off-line with this option.
+
+
+Q. What's left to do in GSDB ? 
+
+    There are a few things left to do in this program.
+
+	* Write a Shogi Tutorial
+	* Further devellopment of the Shogi-engine.
+
+
+Q. How do I set up a Tsume problem ? (same for Hishi & Positions)
+
+    Select in menu View, Gametype... Tsume/Hishi/Position to get an empty board
+    Move the mouse-pointer over a square on the board.
+    Press PLNSGBRK for respectively Pawn, Lance, kNight, Silver, Gold, Bishop, Rook and King
+    If you press the key again, the piece will promote/unpromote
+    If you press the ENTER key, the color (to play) will change
+    Press space to clear a square
+    Press d to change the calculation depth
+    When you're finished select in menu View, "Done editing"
+    The remaining pieces in hand for white will be automatically calculated
+    Change a positions by selecting in menu View, Gametype...,"Edit".
+
+
+Q. How does the tsume-solver work ?
+
+    Once you set up the tsume-position, you can let the computer 
+    calculate the solution. To do this simply press the CALC button.  
+    After a while the solution will be presented.
+    A score greater then 0 means that a tsume has been found.
+    For example : 
+    
+    Best path found (3p) : [89997] pos=78 secs=57.244 [N'5c K6a-7a G'7b] means :
+
+	[89997] : tsume has been found
+	pos=78 : 78 different positions examined
+	sec=57.244 : it took almost a minute to calculate it
+	N'5c K6a-7a G'7b : solution is mate in 3
+
+
+</pre>
+</HTML>
