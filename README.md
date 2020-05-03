@@ -9,7 +9,7 @@ GSDB is a graphical browser for Shogi games. These games originate from professi
 
 For more information on shogi I can warmly recommend that you catch the next wave and surf to [Shogi Harbour's videos](https://www.youtube.com/channel/UCRnXG7CkKfEN6IINKcO_uBg).
 
-Most people who start playing [Shogi](http://www.halcyon.com/stouten/shogi.html) say it's a great game. To become a good shogi-player however, you need to know how professional shogi-players are playing. Well, this database allows you to see how other people have played the game in competition. Also you can review some opening theory.
+Most people who start playing [Shogi](https://en.wikipedia.org/wiki/Shogi) say it's a great game. To become a good shogi-player however, you need to know how professional shogi-players are playing. Well, this database allows you to see how other people have played the game in competition. Also you can review some opening theory.
 
 In remembrance of George Hodges (1934-2010)
 ---------------------
